@@ -31,6 +31,9 @@ ensure_dir_exists ${OUTPUT_DIR}
 AWS_TOOL=aws
 ensure_tool_available ${AWS_TOOL}
 
+# ensure our environment definitions are available
+ensure_var_defined "${EMMA_CONTENT_BUCKET}" "EMMA_CONTENT_BUCKET"
+
 # other definitions
 FILE_LIST=/tmp/emma-filelist.$$
 find ${INPUT_DIR} -maxdepth 1 -name submission-id.* | sort > ${FILE_LIST}
@@ -57,7 +60,7 @@ for fname in $(<${FILE_LIST}); do
    # download the file from the S3 bucket
    file_id=$(cat ${INPUT_DIR}/file-data.${id} | jq -r ".id")
    echo "${sub_id} downloading ${file_id} ..."
-   ${AWS_TOOL} s3 cp s3://${EMMA_BUCKET}/upload/${file_id} ${out_dir}/${file_id} --quiet
+   ${AWS_TOOL} s3 cp s3://${EMMA_CONTENT_BUCKET}/upload/${file_id} ${out_dir}/${file_id} --quiet
    res=$?
    if [ ${res} -ne 0 ]; then
       ((ERROR_COUNT=ERROR_COUNT+1))

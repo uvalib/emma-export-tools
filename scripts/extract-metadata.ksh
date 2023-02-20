@@ -30,6 +30,13 @@ RAW_FILE=/tmp/emma-extract.$$
 PG_TOOL=${SCRIPT_DIR}/pg_query.ksh
 ensure_file_exists ${PG_TOOL}
 
+# ensure our environment definitions are available
+ensure_var_defined "${DBHOST}" "DBHOST"
+ensure_var_defined "${DBPORT}" "DBPORT"
+ensure_var_defined "${DBUSER}" "DBUSER"
+ensure_var_defined "${DBPASS}" "DBPASS"
+ensure_var_defined "${DBNAME}" "DBNAME"
+
 # do the extract
 ${PG_TOOL} ${DBHOST} ${DBPORT} ${DBUSER} ${DBPASS} ${DBNAME} "select id, submission_id, emma_data, file_data from entries order by id" > ${RAW_FILE}
 
