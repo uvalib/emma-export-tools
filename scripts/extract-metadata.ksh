@@ -61,7 +61,7 @@ done
 rm ${RAW_FILE}
 
 # status message
-echo "done... ${SUCCESS_COUNT} successful"
+echo "done... ${SUCCESS_COUNT} successful, 0 error(s)"
 
 # its all over
 exit 0

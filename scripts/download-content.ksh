@@ -60,7 +60,7 @@ for fname in $(<${FILE_LIST}); do
 
    # download the file from the S3 bucket
    file_id=$(cat ${INPUT_DIR}/file-data.${id} | jq -r ".id")
-   echo "${sub_id} downloading ${file_id} ..."
+   echo "${sub_id} downloading ${file_id}..."
    ${AWS_TOOL} s3 cp s3://${EMMA_CONTENT_BUCKET}/upload/${file_id} ${out_dir}/${file_id} --quiet
    res=$?
    if [ ${res} -ne 0 ]; then
