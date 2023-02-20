@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # EMMA content download script
 #
