@@ -43,6 +43,7 @@ ${PG_TOOL} ${DBHOST} ${DBPORT} ${DBUSER} ${DBPASS} ${DBNAME} "select id, submiss
 
 # track our progress
 SUCCESS_COUNT=0
+ERROR_COUNT=0
 
 # go through each one
 IFS=$'\n'
@@ -55,13 +56,19 @@ for line in $(<${RAW_FILE}); do
    echo ${line} | awk -F'|' '{print $3}' > ${OUTPUT_DIR}/emma-data.${id}
    echo ${line} | awk -F'|' '{print $4}' > ${OUTPUT_DIR}/file-data.${id}
 
-   ((SUCCESS_COUNT=SUCCESS_COUNT+1))
+   # check the content files exists
+   if [ -s ${OUTPUT_DIR}/emma-data.${id} -a -s ${OUTPUT_DIR}/file-data.${id} ]; then
+      ((SUCCESS_COUNT=SUCCESS_COUNT+1))
+   else
+      ((ERROR_COUNT=ERROR_COUNT+1))
+   fi
+
 done
 
 rm ${RAW_FILE}
 
 # status message
-echo "done... ${SUCCESS_COUNT} successful, 0 error(s)"
+echo "done... ${SUCCESS_COUNT} successful, ${ERROR_COUNT} error(s)"
 
 # its all over
 exit 0

@@ -28,9 +28,11 @@ shift
 ensure_dir_exists ${INPUT_DIR}
 ensure_dir_exists ${OUTPUT_DIR}
 
-# check the AWS cli is available
+# check the tools are available
 AWS_TOOL=aws
 ensure_tool_available ${AWS_TOOL}
+JQ_TOOL=jq
+ensure_tool_available ${JQ_TOOL}
 
 # ensure our environment definitions are available
 ensure_var_defined "${EMMA_CONTENT_BUCKET}" "EMMA_CONTENT_BUCKET"
@@ -58,10 +60,24 @@ for fname in $(<${FILE_LIST}); do
       continue
    fi
 
+   # check the content file exists
+   if [ ! -s ${INPUT_DIR}/file-data.${id} ]; then
+      ((ERROR_COUNT=ERROR_COUNT+1))
+      continue
+   fi
+
+   # extract the info we need
+   file_id=$(cat ${INPUT_DIR}/file-data.${id} | ${JQ_TOOL} -r ".id")
+   file_name=$(cat ${INPUT_DIR}/file-data.${id} | ${JQ_TOOL} -r ".metadata .filename")
+   if [ -z "${file_id}" -o -z "${file_name}" ]; then
+      ((ERROR_COUNT=ERROR_COUNT+1))
+      continue
+   fi
+
    # download the file from the S3 bucket
-   file_id=$(cat ${INPUT_DIR}/file-data.${id} | jq -r ".id")
-   echo "${sub_id} downloading ${file_id}..."
-   ${AWS_TOOL} s3 cp s3://${EMMA_CONTENT_BUCKET}/upload/${file_id} ${out_dir}/${file_id} --quiet
+   echo "${sub_id} downloading ${file_id} -> ${file_name}"
+   ${AWS_TOOL} s3 cp s3://${EMMA_CONTENT_BUCKET}/upload/${file_id} "${out_dir}/${file_name}" --quiet
+   #touch "${out_dir}/${file_name}"
    res=$?
    if [ ${res} -ne 0 ]; then
       ((ERROR_COUNT=ERROR_COUNT+1))
@@ -69,7 +85,7 @@ for fname in $(<${FILE_LIST}); do
    fi
 
    # copy the metadata
-   cat ${INPUT_DIR}/emma-data.${id} | jq . > ${out_dir}/metadata.json
+   cat ${INPUT_DIR}/emma-data.${id} | ${JQ_TOOL} . > ${out_dir}/metadata.json
    res=$?
    if [ ${res} -ne 0 ]; then
       ((ERROR_COUNT=ERROR_COUNT+1))
