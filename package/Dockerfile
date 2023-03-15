@@ -4,7 +4,7 @@
 FROM public.ecr.aws/docker/library/alpine:3.17
 
 # update the packages and add what we need
-RUN apk update && apk upgrade && apk add bash tzdata ca-certificates jq aws-cli postgresql-client && rm -fr /var/cache/apk/*
+RUN apk update && apk upgrade && apk add bash tzdata ca-certificates jq aws-cli curl && rm -fr /var/cache/apk/*
 
 # Create the run user and group
 RUN addgroup --gid 18570 sse && adduser --uid 1984 docker -G sse -D
