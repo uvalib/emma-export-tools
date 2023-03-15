@@ -24,6 +24,9 @@ OUTPUT_DIR=${1}
 # check the output directory exists
 ensure_dir_exists ${OUTPUT_DIR}
 
+# check endpoint variable
+ensure_var_defined "${EMMA_METADATA_ENDPOINT}" "EMMA_METADATA_ENDPOINT"
+
 # tools for extract
 METADATA_EXTRACT=${SCRIPT_DIR}/extract-metadata.ksh
 ensure_file_exists ${METADATA_EXTRACT}
@@ -33,7 +36,7 @@ ensure_file_exists ${CONTENT_EXTRACT}
 METADATA_DIR=/tmp/emma-extract-$$
 mkdir ${METADATA_DIR}
 
-${METADATA_EXTRACT} ${METADATA_DIR}
+${METADATA_EXTRACT} ${METADATA_DIR} ${EMMA_METADATA_ENDPOINT}
 exit_on_error $? "extracting metadata"
 
 ${CONTENT_EXTRACT} ${METADATA_DIR} ${OUTPUT_DIR}

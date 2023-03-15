@@ -34,25 +34,20 @@ ensure_tool_available ${AWS_TOOL}
 JQ_TOOL=jq
 ensure_tool_available ${JQ_TOOL}
 
-# ensure our environment definitions are available
-ensure_var_defined "${EMMA_CONTENT_BUCKET}" "EMMA_CONTENT_BUCKET"
-
 # other definitions
-FILE_LIST=/tmp/emma-filelist.$$
-find ${INPUT_DIR} -maxdepth 1 -name submission-id.* | sort > ${FILE_LIST}
+DIR_LIST=/tmp/emma-dirlist.$$
+ls -l ${INPUT_DIR} | awk '{print $9}' | sort > ${DIR_LIST}
 
 # track our progress
 SUCCESS_COUNT=0
 ERROR_COUNT=0
 
-# process each file...
-for fname in $(<${FILE_LIST}); do
+# process each directory...
+for dname in $(<${DIR_LIST}); do
 
-   id=$(echo ${fname} | awk -F. '{print $2}')
-
-   sub_id=$(cat ${fname})
-
-   out_dir=${OUTPUT_DIR}/export-${sub_id}
+   submission_id=${dname}
+   in_dir=${INPUT_DIR}/${dname}
+   out_dir=${OUTPUT_DIR}/export-${submission_id}
    mkdir ${out_dir}
    res=$?
    if [ ${res} -ne 0 ]; then
@@ -60,34 +55,43 @@ for fname in $(<${FILE_LIST}); do
       continue
    fi
 
-   # check the content file exists
-   if [ ! -s ${INPUT_DIR}/file-data.${id} ]; then
+   # check the content files exists
+   if [ ! -s ${in_dir}/file-data.json -o ! -s ${in_dir}/file-url.txt ]; then
+      echo "${submission_id}: missing export file"
       ((ERROR_COUNT=ERROR_COUNT+1))
       continue
    fi
 
    # extract the info we need
-   file_id=$(cat ${INPUT_DIR}/file-data.${id} | ${JQ_TOOL} -r ".id")
-   file_name=$(cat ${INPUT_DIR}/file-data.${id} | ${JQ_TOOL} -r ".metadata .filename")
-   if [ -z "${file_id}" -o -z "${file_name}" ]; then
+   file_url=$(cat ${in_dir}/file-url.txt)
+   file_name=$(cat ${in_dir}/file-data.json | ${JQ_TOOL} -r ".metadata .filename")
+   if [ -z "${file_url}" -o -z "${file_name}" ]; then
+      echo "${submission_id}: missing metadata"
       ((ERROR_COUNT=ERROR_COUNT+1))
       continue
    fi
 
-   # download the file from the S3 bucket
-   echo "${sub_id} downloading ${file_id} -> ${file_name}"
-   ${AWS_TOOL} s3 cp s3://${EMMA_CONTENT_BUCKET}/upload/${file_id} "${out_dir}/${file_name}" --quiet
+   # download the file
+   echo "downloading ${file_url} -> ${file_name}"
+
+   # making lots of assumptions   
+   bucket=$(echo ${file_url} | awk -F'/' '{print $3}' | awk -F. '{print $1}')
+   key=$(echo ${file_url} | awk -F'/' '{printf "%s/%s", $4, $5}')
+   
+   ${AWS_TOOL} s3 cp s3://${bucket}/${key} "${out_dir}/${file_name}" --quiet
    #touch "${out_dir}/${file_name}"
    res=$?
    if [ ${res} -ne 0 ]; then
+      # error message from failed command
       ((ERROR_COUNT=ERROR_COUNT+1))
       continue
    fi
 
    # copy the metadata
-   cat ${INPUT_DIR}/emma-data.${id} | ${JQ_TOOL} . > ${out_dir}/metadata.json
+   cat ${in_dir}/emma-data.json | ${JQ_TOOL} . > ${out_dir}/metadata.json
    res=$?
    if [ ${res} -ne 0 ]; then
+      echo "${submission_id}: missing metadata file"
       ((ERROR_COUNT=ERROR_COUNT+1))
       continue
    fi
@@ -95,7 +99,7 @@ for fname in $(<${FILE_LIST}); do
    ((SUCCESS_COUNT=SUCCESS_COUNT+1))
 done
 
-rm ${FILE_LIST}
+rm ${DIR_LIST}
 
 # status message
 echo "done... ${SUCCESS_COUNT} successful, ${ERROR_COUNT} error(s)"
