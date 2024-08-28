@@ -10,16 +10,19 @@ SCRIPT_DIR=$( (cd -P $(dirname $0) && pwd) )
 . $SCRIPT_DIR/common.ksh
 
 function show_use_and_exit {
-   error_and_exit "use: $(basename $0) <output directory>"
+   error_and_exit "use: $(basename $0) <output directory> <export start date>"
 }
 
 # ensure correct usage
-if [ $# -lt 1 ]; then
+if [ $# -lt 2 ]; then
    show_use_and_exit
 fi
 
 # input parameters for clarity
 OUTPUT_DIR=${1}
+shift
+START_DATE=${1}
+shift
 
 # check the output directory exists
 ensure_dir_exists ${OUTPUT_DIR}
@@ -36,7 +39,10 @@ ensure_file_exists ${CONTENT_EXTRACT}
 METADATA_DIR=/tmp/emma-extract-$$
 mkdir ${METADATA_DIR}
 
-${METADATA_EXTRACT} ${METADATA_DIR} ${EMMA_METADATA_ENDPOINT}
+# construct the actual query URL to include the start date
+url=${EMMA_METADATA_ENDPOINT}?start_date=${START_DATE}
+
+${METADATA_EXTRACT} ${METADATA_DIR} "${url}"
 exit_on_error $? "extracting metadata"
 
 ${CONTENT_EXTRACT} ${METADATA_DIR} ${OUTPUT_DIR}
